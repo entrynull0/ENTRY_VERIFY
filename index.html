@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ENTRY Verification</title>
+<style>
+    body {
+        background: black;
+        color: #00ff00;
+        font-family: monospace;
+        overflow: hidden;
+        text-align: center;
+        padding-top: 120px;
+    }
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+    }
+    button {
+        background: black;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 12px 25px;
+        font-size: 18px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
 
+<canvas id="matrix"></canvas>
+
+<h1>ENTRY Wallet Verification</h1>
+<p>Connect your Solana wallet to continue</p>
+
+<button id="connect">Connect Wallet</button>
+
+<script>
+// Matrix background
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+
+const chars = "01";
+const drops = Array(Math.floor(canvas.width / 10)).fill(1);
+
+function draw() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#00ff00";
+    ctx.font = "15px monospace";
+
+    drops.forEach((y, i) => {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * 10, y * 20);
+
+        if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+    });
+}
+
+setInterval(draw, 33);
+
+// Wallet connect
+document.getElementById("connect").onclick = async () => {
+    if (!window.solana) {
+        alert("Phantom wallet not found");
+        return;
+    }
+
+    const resp = await window.solana.connect();
+    const wallet = resp.publicKey.toString();
+
+    alert("Wallet connected: " + wallet);
+
+    // TODO: send wallet + discord_id + original_wallet to your bot API
+};
+</script>
+
+</body>
+</html>

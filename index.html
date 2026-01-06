@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>ENTRY Verification</title>
 
-<!-- Favicon: ENTRY_ green on black background -->
+<!-- Favicon: ENTRY green on black background -->
 <!-- آیکون ENTRY سبز روی بک‌گراند مشکی -->
 <link
   rel="icon"
@@ -128,10 +128,12 @@ const walletFromBot = urlParams.get("wallet");
 const paramsStatus = document.getElementById("paramsStatus");
 
 if (!discordId || !walletFromBot) {
-    paramsStatus.innerText = "Missing discord_id or wallet in URL. / پارامتر discord_id یا wallet در URL نیست.";
+    paramsStatus.innerText = "Missing discord_id or wallet in URL.";
+    // پارامتر discord_id یا wallet در URL نیست
     paramsStatus.className = "error";
 } else {
-    paramsStatus.innerText = "Discord ID and wallet detected. / Discord ID و ولت شناسایی شد.";
+    paramsStatus.innerText = "Discord ID and wallet detected.";
+    // Discord ID و ولت شناسایی شد
     paramsStatus.className = "success";
 }
 
@@ -168,7 +170,8 @@ function getProvider(choice) {
             if (window.nightly) return window.nightly;
             break;
         case "ledger":
-            alert("Ledger usually managed via Phantom/Backpack. / Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود.");
+            alert("Ledger usually managed via Phantom/Backpack.");
+            // Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود
             return null;
     }
     return null;
@@ -181,7 +184,8 @@ document.getElementById("connect").onclick = async () => {
     setWalletAddress("");
 
     if (!discordId || !walletFromBot) {
-        setStatus("URL missing required parameters. / پارامترهای لازم در URL نیست.", "error");
+        setStatus("URL missing required parameters.", "error");
+        // پارامترهای لازم در URL نیست
         return;
     }
 
@@ -189,7 +193,8 @@ document.getElementById("connect").onclick = async () => {
     const provider = getProvider(choice);
 
     if (!provider) {
-        setStatus("Selected wallet extension not found. / ولت انتخاب‌شده پیدا نشد.", "error");
+        setStatus("Selected wallet extension not found.", "error");
+        // ولت انتخاب‌شده پیدا نشد
         return;
     }
 
@@ -204,7 +209,8 @@ document.getElementById("connect").onclick = async () => {
         const encodedMessage = new TextEncoder().encode(message);
 
         if (!provider.signMessage) {
-            setStatus("Wallet does not support signing. / این ولت قابلیت امضای پیام ندارد.", "error");
+            setStatus("Wallet does not support signing.", "error");
+            // این ولت قابلیت امضای پیام ندارد
             return;
         }
 
@@ -214,11 +220,12 @@ document.getElementById("connect").onclick = async () => {
         const sigBase64 = btoa(String.fromCharCode(...sigBytes));
 
         // Show result on page (no API) / نمایش نتیجه روی صفحه (بدون API)
-        setStatus("✅ Message signed.\nSignature: " + sigBase64 + "\nامضا انجام شد.", "success");
+        setStatus("✅ Message signed.\nSignature: " + sigBase64, "success");
 
     } catch (err) {
         console.error(err);
-        setStatus("Wallet connection or signing failed. / اتصال یا امضای ولت شکست خورد.", "error");
+        setStatus("Wallet connection or signing failed.", "error");
+        // اتصال یا امضای ولت شکست خورد
     }
 };
 </script>

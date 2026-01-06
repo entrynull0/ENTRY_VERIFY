@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <title>ENTRY Verification</title>
+
+<!-- Favicon: ENTRY_ سبز روی بک‌گراند مشکی -->
+<link
+  rel="icon"
+  type="image/svg+xml"
+  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='18' fill='%2300ff00'%3EENTRY_%3C/text%3E%3C/svg%3E"
+/>
+
 <style>
     body {
         background: black;
@@ -18,13 +26,39 @@
         left: 0;
         z-index: -1;
     }
-    button {
+    .panel {
+        background: rgba(0, 0, 0, 0.6);
+        padding: 25px 40px;
+        border: 1px solid #00ff00;
+        display: inline-block;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        min-width: 320px;
+    }
+    select, button {
         background: black;
         border: 1px solid #00ff00;
         color: #00ff00;
-        padding: 12px 25px;
-        font-size: 18px;
+        padding: 10px 20px;
+        font-size: 16px;
         cursor: pointer;
+        margin-top: 10px;
+    }
+    #walletAddress {
+        margin-top: 15px;
+        font-size: 14px;
+        color: #00ff00;
+        word-break: break-all;
+    }
+    #status {
+        margin-top: 15px;
+        font-size: 14px;
+    }
+    .error {
+        color: #ff5555;
+    }
+    .success {
+        color: #00ff00;
     }
 </style>
 </head>
@@ -32,21 +66,44 @@
 
 <canvas id="matrix"></canvas>
 
-<h1>ENTRY Wallet Verification</h1>
-<p>Connect your Solana wallet to continue</p>
+<div class="panel">
+    <h1>ENTRY Wallet Verification</h1>
+    <p>Connect your Solana wallet to continue</p>
 
-<button id="connect">Connect Wallet</button>
+    <p id="paramsStatus"></p>
+
+    <select id="walletSelect">
+        <option value="phantom">Phantom</option>
+        <option value="solflare">Solflare</option>
+        <option value="backpack">Backpack</option>
+        <option value="glow">Glow</option>
+        <option value="nightly">Nightly</option>
+        <option value="ledger">Ledger (via Phantom/Backpack)</option>
+    </select>
+
+    <br>
+
+    <button id="connect">Connect Wallet</button>
+
+    <div id="walletAddress"></div>
+    <div id="status"></div>
+</div>
 
 <script>
-// Matrix background
+// ================= Matrix background =================
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 
-canvas.height = window.innerHeight;
-canvas.width = window.innerWidth;
+function resizeCanvas() {
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 const chars = "01";
-const drops = Array(Math.floor(canvas.width / 10)).fill(1);
+let columns = Math.floor(window.innerWidth / 10);
+let drops = Array(columns).fill(1);
 
 function draw() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
@@ -63,22 +120,126 @@ function draw() {
         drops[i]++;
     });
 }
-
 setInterval(draw, 33);
 
-// Wallet connect
+// ================= URL params (discord_id + wallet_from_bot) =================
+const urlParams = new URLSearchParams(window.location.search);
+const discordId = urlParams.get("discord_id");
+const walletFromBot = urlParams.get("wallet"); // ولتی که کاربر تو بات داده
+
+const paramsStatus = document.getElementById("paramsStatus");
+
+if (!discordId || !walletFromBot) {
+    paramsStatus.innerText = "Missing discord_id or wallet in URL.";
+    paramsStatus.className = "error";
+} else {
+    paramsStatus.innerText = "Discord ID and wallet detected. You can verify now.";
+    paramsStatus.className = "success";
+}
+
+// ================= Helpers =================
+function setStatus(msg, type = "") {
+    const el = document.getElementById("status");
+    el.innerText = msg;
+    el.className = type;
+}
+
+function setWalletAddress(addr) {
+    const el = document.getElementById("walletAddress");
+    el.innerText = addr ? "Connected Wallet: " + addr : "";
+}
+
+// ================= Wallet providers (بدون Wallet Adapter، مستقیم) =================
+function getProvider(choice) {
+    switch (choice) {
+        case "phantom":
+            if (window.solana && window.solana.isPhantom) return window.solana;
+            break;
+        case "solflare":
+            if (window.solflare) return window.solflare;
+            break;
+        case "backpack":
+            if (window.backpack && window.backpack.isBackpack) return window.backpack;
+            break;
+        case "glow":
+            if (window.glowSolana) return window.glowSolana;
+            break;
+        case "nightly":
+            if (window.nightly) return window.nightly;
+            break;
+        case "ledger":
+            // در عمل، Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود
+            alert("For Ledger, use Phantom or Backpack in Ledger mode.");
+            return null;
+    }
+    return null;
+}
+
+// ================= Connect + Sign + Send =================
 document.getElementById("connect").onclick = async () => {
-    if (!window.solana) {
-        alert("Phantom wallet not found");
+    setStatus("", "");
+    setWalletAddress("");
+
+    if (!discordId || !walletFromBot) {
+        setStatus("URL is missing required parameters.", "error");
         return;
     }
 
-    const resp = await window.solana.connect();
-    const wallet = resp.publicKey.toString();
+    const choice = document.getElementById("walletSelect").value;
+    const provider = getProvider(choice);
 
-    alert("Wallet connected: " + wallet);
+    if (!provider) {
+        setStatus("Selected wallet extension not found.", "error");
+        return;
+    }
 
-    // TODO: send wallet + discord_id + original_wallet to your bot API
+    try {
+        // اتصال به ولت
+        await provider.connect();
+        const publicKey = provider.publicKey.toString();
+        setWalletAddress(publicKey);
+
+        // جلوگیری از Spoofing با امضای پیام
+        const message = `ENTRY_VERIFY:${discordId}:${walletFromBot}`;
+        const encodedMessage = new TextEncoder().encode(message);
+
+        if (!provider.signMessage) {
+            setStatus("This wallet does not support message signing.", "error");
+            return;
+        }
+
+        const signature = await provider.signMessage(encodedMessage, "utf8");
+        const sigBytes = signature.signature || signature; // بعضی ولت‌ها خود بایت رو می‌دن
+        const sigBase64 = btoa(String.fromCharCode(...sigBytes));
+
+        setStatus("Sending verification data...", "");
+
+        // این URL رو بعداً با آدرس API واقعی‌ت عوض کن
+        const apiUrl = "https://your-api.com/verify";
+
+        const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                discord_id: discordId,
+                wallet_from_bot: walletFromBot,
+                wallet_from_login: publicKey,
+                signature: sigBase64,
+                message
+            })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            setStatus(data.error || "Verification failed.", "error");
+        } else {
+            setStatus(data.message || "Verified successfully. You can close this page.", "success");
+        }
+    } catch (err) {
+        console.error(err);
+        setStatus("Wallet connection or signing failed.", "error");
+    }
 };
 </script>
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>ENTRY Verification</title>
 
-<!-- Favicon: ENTRY_ سبز روی بک‌گراند مشکی -->
+<!-- آیکون ENTRY سبز روی بک‌گراند مشکی -->
 <link
   rel="icon"
   type="image/svg+xml"
@@ -54,12 +54,8 @@
         margin-top: 15px;
         font-size: 14px;
     }
-    .error {
-        color: #ff5555;
-    }
-    .success {
-        color: #00ff00;
-    }
+    .error { color: #ff5555; }
+    .success { color: #00ff00; }
 </style>
 </head>
 <body>
@@ -82,7 +78,6 @@
     </select>
 
     <br>
-
     <button id="connect">Connect Wallet</button>
 
     <div id="walletAddress"></div>
@@ -90,7 +85,7 @@
 </div>
 
 <script>
-// ================= Matrix background =================
+// ================= پس‌زمینه ماتریکس =================
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 
@@ -122,22 +117,22 @@ function draw() {
 }
 setInterval(draw, 33);
 
-// ================= URL params (discord_id + wallet_from_bot) =================
+// ================= گرفتن پارامترهای URL (discord_id + wallet) =================
 const urlParams = new URLSearchParams(window.location.search);
 const discordId = urlParams.get("discord_id");
-const walletFromBot = urlParams.get("wallet"); // ولتی که کاربر تو بات داده
+const walletFromBot = urlParams.get("wallet"); // ولتی که کاربر توی بات داده
 
 const paramsStatus = document.getElementById("paramsStatus");
 
 if (!discordId || !walletFromBot) {
-    paramsStatus.innerText = "Missing discord_id or wallet in URL.";
+    paramsStatus.innerText = "پارامتر discord_id یا wallet در URL نیست.";
     paramsStatus.className = "error";
 } else {
-    paramsStatus.innerText = "Discord ID and wallet detected. You can verify now.";
+    paramsStatus.innerText = "Discord ID و ولت شناسایی شد. می‌توانید وریفای کنید.";
     paramsStatus.className = "success";
 }
 
-// ================= Helpers =================
+// ================= توابع کمکی =================
 function setStatus(msg, type = "") {
     const el = document.getElementById("status");
     el.innerText = msg;
@@ -149,7 +144,7 @@ function setWalletAddress(addr) {
     el.innerText = addr ? "Connected Wallet: " + addr : "";
 }
 
-// ================= Wallet providers (بدون Wallet Adapter، مستقیم) =================
+// ================= انتخاب ولت =================
 function getProvider(choice) {
     switch (choice) {
         case "phantom":
@@ -168,20 +163,19 @@ function getProvider(choice) {
             if (window.nightly) return window.nightly;
             break;
         case "ledger":
-            // در عمل، Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود
-            alert("For Ledger, use Phantom or Backpack in Ledger mode.");
+            alert("Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود.");
             return null;
     }
     return null;
 }
 
-// ================= Connect + Sign + Send =================
+// ================= اتصال به ولت و امضای پیام =================
 document.getElementById("connect").onclick = async () => {
     setStatus("", "");
     setWalletAddress("");
 
     if (!discordId || !walletFromBot) {
-        setStatus("URL is missing required parameters.", "error");
+        setStatus("پارامترهای لازم در URL نیست.", "error");
         return;
     }
 
@@ -189,7 +183,7 @@ document.getElementById("connect").onclick = async () => {
     const provider = getProvider(choice);
 
     if (!provider) {
-        setStatus("Selected wallet extension not found.", "error");
+        setStatus("ولت انتخاب‌شده پیدا نشد.", "error");
         return;
     }
 
@@ -199,46 +193,26 @@ document.getElementById("connect").onclick = async () => {
         const publicKey = provider.publicKey.toString();
         setWalletAddress(publicKey);
 
-        // جلوگیری از Spoofing با امضای پیام
+        // ساخت پیام برای جلوگیری از Spoofing
         const message = `ENTRY_VERIFY:${discordId}:${walletFromBot}`;
         const encodedMessage = new TextEncoder().encode(message);
 
         if (!provider.signMessage) {
-            setStatus("This wallet does not support message signing.", "error");
+            setStatus("این ولت قابلیت امضای پیام ندارد.", "error");
             return;
         }
 
+        // امضای پیام
         const signature = await provider.signMessage(encodedMessage, "utf8");
-        const sigBytes = signature.signature || signature; // بعضی ولت‌ها خود بایت رو می‌دن
+        const sigBytes = signature.signature || signature;
         const sigBase64 = btoa(String.fromCharCode(...sigBytes));
 
-        setStatus("Sending verification data...", "");
+        // نمایش نتیجه روی صفحه (بدون ارسال به API)
+        setStatus("✅ پیام امضا شد.\nSignature: " + sigBase64, "success");
 
-        // این URL رو بعداً با آدرس API واقعی‌ت عوض کن
-        const apiUrl = "https://your-api.com/verify";
-
-        const res = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                discord_id: discordId,
-                wallet_from_bot: walletFromBot,
-                wallet_from_login: publicKey,
-                signature: sigBase64,
-                message
-            })
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-            setStatus(data.error || "Verification failed.", "error");
-        } else {
-            setStatus(data.message || "Verified successfully. You can close this page.", "success");
-        }
     } catch (err) {
         console.error(err);
-        setStatus("Wallet connection or signing failed.", "error");
+        setStatus("اتصال یا امضای ولت شکست خورد.", "error");
     }
 };
 </script>

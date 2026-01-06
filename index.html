@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>ENTRY Verification</title>
 
+<!-- Favicon: ENTRY_ green on black background -->
 <!-- آیکون ENTRY سبز روی بک‌گراند مشکی -->
 <link
   rel="icon"
@@ -85,7 +86,8 @@
 </div>
 
 <script>
-// ================= پس‌زمینه ماتریکس =================
+// ================= Matrix background =================
+// پس‌زمینه ماتریکس
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 
@@ -117,22 +119,24 @@ function draw() {
 }
 setInterval(draw, 33);
 
-// ================= گرفتن پارامترهای URL (discord_id + wallet) =================
+// ================= URL params =================
+// گرفتن پارامترهای URL (discord_id + wallet)
 const urlParams = new URLSearchParams(window.location.search);
 const discordId = urlParams.get("discord_id");
-const walletFromBot = urlParams.get("wallet"); // ولتی که کاربر توی بات داده
+const walletFromBot = urlParams.get("wallet");
 
 const paramsStatus = document.getElementById("paramsStatus");
 
 if (!discordId || !walletFromBot) {
-    paramsStatus.innerText = "پارامتر discord_id یا wallet در URL نیست.";
+    paramsStatus.innerText = "Missing discord_id or wallet in URL. / پارامتر discord_id یا wallet در URL نیست.";
     paramsStatus.className = "error";
 } else {
-    paramsStatus.innerText = "Discord ID و ولت شناسایی شد. می‌توانید وریفای کنید.";
+    paramsStatus.innerText = "Discord ID and wallet detected. / Discord ID و ولت شناسایی شد.";
     paramsStatus.className = "success";
 }
 
-// ================= توابع کمکی =================
+// ================= Helpers =================
+// توابع کمکی
 function setStatus(msg, type = "") {
     const el = document.getElementById("status");
     el.innerText = msg;
@@ -144,7 +148,8 @@ function setWalletAddress(addr) {
     el.innerText = addr ? "Connected Wallet: " + addr : "";
 }
 
-// ================= انتخاب ولت =================
+// ================= Wallet providers =================
+// انتخاب ولت
 function getProvider(choice) {
     switch (choice) {
         case "phantom":
@@ -163,19 +168,20 @@ function getProvider(choice) {
             if (window.nightly) return window.nightly;
             break;
         case "ledger":
-            alert("Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود.");
+            alert("Ledger usually managed via Phantom/Backpack. / Ledger معمولاً از طریق Phantom/Backpack مدیریت می‌شود.");
             return null;
     }
     return null;
 }
 
-// ================= اتصال به ولت و امضای پیام =================
+// ================= Connect + Sign =================
+// اتصال به ولت و امضای پیام
 document.getElementById("connect").onclick = async () => {
     setStatus("", "");
     setWalletAddress("");
 
     if (!discordId || !walletFromBot) {
-        setStatus("پارامترهای لازم در URL نیست.", "error");
+        setStatus("URL missing required parameters. / پارامترهای لازم در URL نیست.", "error");
         return;
     }
 
@@ -183,36 +189,36 @@ document.getElementById("connect").onclick = async () => {
     const provider = getProvider(choice);
 
     if (!provider) {
-        setStatus("ولت انتخاب‌شده پیدا نشد.", "error");
+        setStatus("Selected wallet extension not found. / ولت انتخاب‌شده پیدا نشد.", "error");
         return;
     }
 
     try {
-        // اتصال به ولت
+        // Connect to wallet / اتصال به ولت
         await provider.connect();
         const publicKey = provider.publicKey.toString();
         setWalletAddress(publicKey);
 
-        // ساخت پیام برای جلوگیری از Spoofing
+        // Create message to prevent spoofing / ساخت پیام برای جلوگیری از Spoofing
         const message = `ENTRY_VERIFY:${discordId}:${walletFromBot}`;
         const encodedMessage = new TextEncoder().encode(message);
 
         if (!provider.signMessage) {
-            setStatus("این ولت قابلیت امضای پیام ندارد.", "error");
+            setStatus("Wallet does not support signing. / این ولت قابلیت امضای پیام ندارد.", "error");
             return;
         }
 
-        // امضای پیام
+        // Sign message / امضای پیام
         const signature = await provider.signMessage(encodedMessage, "utf8");
         const sigBytes = signature.signature || signature;
         const sigBase64 = btoa(String.fromCharCode(...sigBytes));
 
-        // نمایش نتیجه روی صفحه (بدون ارسال به API)
-        setStatus("✅ پیام امضا شد.\nSignature: " + sigBase64, "success");
+        // Show result on page (no API) / نمایش نتیجه روی صفحه (بدون API)
+        setStatus("✅ Message signed.\nSignature: " + sigBase64 + "\nامضا انجام شد.", "success");
 
     } catch (err) {
         console.error(err);
-        setStatus("اتصال یا امضای ولت شکست خورد.", "error");
+        setStatus("Wallet connection or signing failed. / اتصال یا امضای ولت شکست خورد.", "error");
     }
 };
 </script>
